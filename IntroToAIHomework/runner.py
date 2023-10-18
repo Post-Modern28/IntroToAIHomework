@@ -1,68 +1,42 @@
-my_map = [['', 'P', 'T', 'P', '', '', '', '', ''],
-          ['', 'P', 'P', 'P', '', '', '', '', ''],
-          ['', '', '', '', '', '', '', '', ''],
-          ['', '', '', '', '', '', '', '', ''],
-          ['', '', 'P', '', '', '', '', '', ''],
-          ['', 'P', 'H', 'P', '', 'S', '', '', ''],
-          ['', '', 'P', '', '', '', '', '', ''],
-          ['', '', '', '', '', '', '', '', ''],
-          ['', '', '', '', '', '', '', '', 'I']]
+
+my_map = [# 0    1    2    3    4    5    6    7    8
+          [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],    # 0
+          [' ', 'P', 'P', 'P', ' ', ' ', ' ', ' ', ' '],    # 1
+          ['P', 'H', 'T', 'P', ' ', ' ', ' ', ' ', ' '],    # 2
+          ['P', 'P', 'M', 'P', 'P', ' ', ' ', ' ', ' '],    # 3
+          [' ', 'P', 'P', 'P', 'I', ' ', ' ', ' ', ' '],    # 4
+          [' ', ' ', 'P', ' ', ' ', ' ', ' ', ' ', ' '],    # 5
+          [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],    # 6
+          [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],    # 7
+          [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']]    # 8
 
 
-# my_map = [['', 'P', 'T', 'P', '', '', '', '', ''],
-#           ['', 'P', 'P', 'P', '', '', '', '', ''],
-#           ['P', 'H', 'P', '', '', '', '', '', ''],
-#           ['', 'P', '', '', '', '', '', '', ''],
-#           ['', '', '', '', '', '', '', '', ''],
-#           ['', '', '', '', '', 'S', '', '', ''],
-#           ['', '', '', '', '', '', '', '', ''],
-#           ['', '', '', '', '', '', '', '', ''],
-#           ['', '', '', '', '', '', '', '', 'I']]
-
-# my_map = [['', '', '', '', '', '', '', 'P', 'S'],
-#           ['', '', '', '', '', '', 'P', 'H', 'P'],
-#           ['', '', '', '', '', '', '', 'P', ''],
-#           ['', '', '', '', '', '', '', '', ''],
-#           ['P', 'P', 'P', '', 'P', '', '', '', ''],
-#           ['P', 'T', 'P', 'P', 'P', 'P', '', '', ''],
-#           ['P', 'P', 'P', 'P', 'M', 'P', '', '', ''],
-#           ['', '', '', '', 'P', 'P', 'P', '', ''],
-#           ['I', '', '', '', '', 'P', '', '', '']]
-
-# my_map = [['', '', '', '', '', '', '', 'P', 'S'],
-#           ['', '', '', '', '', '', 'P', 'P', 'P'],
-#           ['', '', '', '', '', 'P', 'P', 'M', 'P'],
-#           ['', '', '', '', '', '', 'P', 'P', 'P'],
-#           ['P', 'P', 'P', 'P', '', '', '', 'P', ''],
-#           ['P', 'T', 'P', 'H', 'P', '', '', '', 'I'],
-#           ['P', 'P', 'P', 'P', '', '', '', '', ''],
-#           ['', '', '', '', '', '', '', '', ''],
-#           ['', '', '', '', '', '', '', '', '']]
+def transpose_matrix(matrix):
+    n = len(matrix)
+    for i in range(n):
+        for j in range(i+1, n):
+            matrix[i][j], matrix[j][i] = matrix[j][i], matrix[i][j]
 
 
-my_map = [['', '', '', '', '', '', '', 'P', ''],
-          ['', '', '', '', '', '', 'P', 'P', 'P'],
-          ['', '', '', '', '', 'P', 'P', 'M', 'P'],
-          ['', '', '', '', '', '', 'P', 'P', 'P'],
-          ['P', 'P', 'P', '', '', '', '', 'P', ''],
-          ['P', 'T', 'P', '', '', '', '', '', ''],
-          ['P', 'P', 'P', '', '', '', '', '', ''],
-          ['', 'P', 'H', 'P', '', '', '', '', ''],
-          ['', '', 'P', 'I', '', '', '', '', 'S']]
-
+transpose_matrix(my_map)
+#print(*my_map, sep='\n')
 marvel_x = 1000
 marvel_y = 1000
 for i in range(9):
     mar_flag = 0
     for j in range(9):
-        if my_map[j][j] == "M":
+        if my_map[i][j] == "M":
             marvel_x = i
             marvel_y = j
             mar_flag = 1
             break
     if mar_flag == 1:
         break
-
+for i in range(9):
+    mar_flag = 0
+    for j in range(9):
+        if my_map[i][j] == ' ':
+            my_map[i][j] = ''
 has_shield = False
 inf_stone_x = inf_stone_y = 0
 game_type = None
@@ -76,7 +50,6 @@ def game_one():
     inf_stone_y = int(inf_stone_y)
     x = y = 0
     explored_map[0][0].add("Clear")
-    # explored_map[inf_stone_x][inf_stone_y].add("Stone")
 
     make_move(x, y, explored_map, x, y)
     if not has_shield and "Visited" not in explored_map[inf_stone_x][inf_stone_y]:
@@ -121,23 +94,20 @@ def game_one():
     # print(*explored_map, sep='\n')
 
 
-
-
 def make_move(x, y, game_map, source_x, source_y):
-    # print("m", x, y)
+    print("m", x, y)
     global has_shield
 
     with open("runner_request.txt", 'w') as f:
         f.write(f'm {x} {y}\n')
     simulate_response()
-
+    game_map[x][y].add("Visited")
     with open("author_response.txt", 'r') as f:
         u = f.readline()
         num_of_dangers = int(u)
         dangers = []
         for i in range(num_of_dangers):
             x_c, y_c, danger_type = f.readline().split()
-            # print(x_c, y_c, danger_type)
             x_c = int(x_c)
             y_c = int(y_c)
             dangers.append([x_c, y_c])
@@ -161,13 +131,49 @@ def make_move(x, y, game_map, source_x, source_y):
                     game_map[xcoord][ycoord].add("Danger")
             elif danger_type == "P":
                 game_map[x_c][y_c].add("Danger")
+    # u = input()
+    # num_of_dangers = int(u)
+    # dangers = []
+    # for i in range(num_of_dangers):
+    #     x_c, y_c, danger_type = input().split()
+    #     x_c = int(x_c)
+    #     y_c = int(y_c)
+    #     dangers.append([x_c, y_c])
+    #     if danger_type == 'S':
+    #         game_map[x_c][y_c].add("Shield")
+    #         game_map[x_c][y_c].add("Clear")
+    #         dangers.pop()
+    #     elif danger_type == "H":
+    #         game_map[x_c][y_c].add("Hulk")
+    #         for xcoord, ycoord in x_squares(x_c, y_c):
+    #             game_map[xcoord][ycoord].add("Solvable Danger")
+    #     elif danger_type == "I":
+    #         game_map[x_c][y_c].add("Stone")
+    #         game_map[x_c][y_c].add("Clear")
+    #         dangers.pop()
+    #     elif danger_type == "T":
+    #         game_map[x_c][y_c].add("Thor")
+    #         for xcoord, ycoord in surrounding_squares(x_c, y_c):
+    #             game_map[xcoord][ycoord].add("Solvable Danger")
+    #     elif danger_type == "M":
+    #         game_map[x_c][y_c].add("Captain Marvel")
+    #         for xcoord, ycoord in captain_marvel_zone(x_c, y_c):
+    #             game_map[xcoord][ycoord].add("Danger")
+    #     elif danger_type == "P":
+    #         game_map[x_c][y_c].add("Danger")
 
     for pair in surrounding_squares(x, y):
         if pair not in dangers:
             x_c = pair[0]
             y_c = pair[1]
             game_map[x_c][y_c].add("Clear")
-    game_map[x][y].add("Visited")
+    if game_type == 2:
+        for pair in ear_squares(x, y):
+            x_c = pair[0]
+            y_c = pair[1]
+            if pair not in dangers:
+                game_map[x_c][y_c].add("Clear")
+
     for pair in x_squares(x, y):
         x_c = pair[0]
         y_c = pair[1]
@@ -175,7 +181,11 @@ def make_move(x, y, game_map, source_x, source_y):
             if "Shield" in game_map[x_c][y_c]:
                 has_shield = True
             make_move(x_c, y_c, game_map, x, y)
-    # print("m", x, y)
+    print("m", source_x, source_y)
+    # u = input()
+    # num_of_dangers = int(u)
+    # for i in range(num_of_dangers):
+    #     x_c, y_c, danger_type = input().split()
     with open("runner_request.txt", 'w') as f:
         f.write(f'm {source_x} {source_y}\n')
     simulate_response()
@@ -207,7 +217,7 @@ def simulate_response():
         y = int(y)
     for elem in ['H', 'M', 'T']:
         if elem in my_map[x][y]:
-            print(f"You stepped at ({x}, {y})")
+            print(f"You stepped at ({x}, {y}) where enemy resides")
             print("Game over.")
             raise Exception
     if [x, y] not in x_squares(x_prev, y_prev) and [x, y] != [x_prev, y_prev]:
@@ -217,6 +227,8 @@ def simulate_response():
     y_prev = y
     if ('P' in my_map[x][y] and not has_shield) or [x, y] in captain_marvel_zone(marvel_x, marvel_y):
         print(f"You stepped at ({x}, {y})")
+        print(marvel_x, marvel_y)
+        print(captain_marvel_zone(marvel_x, marvel_y))
         print("Game over.")
         raise Exception
     dangers = []
@@ -336,12 +348,25 @@ def runner():
     global game_type
     global inf_stone_x, inf_stone_y
     game_type = int(input())
-    inf_stone_x, inf_stone_y = map(int, input().split())
+    inf_stone_y, inf_stone_x = map(int, input().split())
+    #inf_stone_x, inf_stone_y = map(int, input().split())
     game_one()
-
     return
 
 
-if __name__ == "__main__":
+runner()
 
-    runner()
+
+
+
+# def generate_test_cases():
+#     for i in range(9):
+#         for j in range(9):
+#
+#     test_map = [['' for _ in range(9)] for __ in range(9)]
+#
+#     with open("testcases.txt", 'w') as f:
+#         f.write(f"{my_map}")
+# generate_test_cases()
+
+
