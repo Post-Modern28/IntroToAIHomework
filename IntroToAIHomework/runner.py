@@ -51,8 +51,8 @@ def game_one():
     x = y = 0
     explored_map[0][0].add("Clear")
 
-    make_move(x, y, explored_map, x, y)
-    if not has_shield and "Visited" not in explored_map[inf_stone_x][inf_stone_y]:
+    make_move(y, x, explored_map, y, x)
+    if not has_shield and "Visited" not in explored_map[inf_stone_y][inf_stone_x]:
         """
         If shield wasn't picked in exploration phase, that means it is surrounded by avengers and cannot be accessed.
         If shield cannot be accessed and stone wasn't visited without it, that means the map is unsolvable.
@@ -64,7 +64,7 @@ def game_one():
         If shield wasn't picked in exploration phase, that means it is surrounded by avengers and cannot be accessed,
         so the shortest path surely has to avoid avengers
         """
-        shortest_path = find_shortest_path_without_shield(explored_map, inf_stone_x, inf_stone_y)
+        shortest_path = find_shortest_path_without_shield(explored_map, inf_stone_y, inf_stone_x)
         print(f"e {shortest_path}")
     else:
         """
@@ -80,118 +80,116 @@ def game_one():
                 explored_map[i][j].discard("Visited")
                 explored_map[i][j].discard("Danger")
                 if "Shield" in explored_map[i][j]:
-                    shield_x = i
-                    shield_y = j
-        make_move(x, y, explored_map, x, y)
-        if "Visited" not in explored_map[inf_stone_x][inf_stone_y]:
+                    shield_y = i
+                    shield_x = j
+        make_move(0, 0, explored_map, 0, 0)
+        if "Visited" not in explored_map[inf_stone_y][inf_stone_x]:
             # If stone is not accessible even with a shield, then map is unsolvable
             print("e -1")
             return
-        path1 = find_shortest_path_without_shield(explored_map, inf_stone_x, inf_stone_y)
-        path2 = find_shortest_path_with_shield(explored_map, shield_x, shield_y, inf_stone_x, inf_stone_y)
+        path1 = find_shortest_path_without_shield(explored_map, inf_stone_y, inf_stone_x)
+        path2 = find_shortest_path_with_shield(explored_map, shield_y, shield_x, inf_stone_y, inf_stone_x)
         min_path = min(path1, path2)
         print(f'e {min_path}')
     # print(*explored_map, sep='\n')
 
 
-def make_move(x, y, game_map, source_x, source_y):
-    print("m", x, y)
+def make_move(y, x, game_map, source_y, source_x):
+    print("m", y, x)
     global has_shield
 
     with open("runner_request.txt", 'w') as f:
-        f.write(f'm {x} {y}\n')
+        f.write(f'm {y} {x}\n')
     simulate_response()
-    game_map[x][y].add("Visited")
+    game_map[y][x].add("Visited")
     with open("author_response.txt", 'r') as f:
         u = f.readline()
         num_of_dangers = int(u)
         dangers = []
         for i in range(num_of_dangers):
-            x_c, y_c, danger_type = f.readline().split()
+            y_c, x_c, danger_type = f.readline().split()
             x_c = int(x_c)
             y_c = int(y_c)
-            dangers.append([x_c, y_c])
+            dangers.append([y_c, x_c])
             if danger_type == 'S':
-                game_map[x_c][y_c].add("Shield")
-                game_map[x_c][y_c].add("Clear")
+                game_map[y_c][x_c].add("Shield")
+                game_map[y_c][x_c].add("Clear")
             elif danger_type == "H":
-                game_map[x_c][y_c].add("Hulk")
-                for xcoord, ycoord in x_squares(x_c, y_c):
-                    game_map[xcoord][ycoord].add("Solvable Danger")
+                game_map[y_c][x_c].add("Hulk")
+                for ycoord, xcoord in x_squares(y_c, x_c):
+                    game_map[ycoord][xcoord].add("Solvable Danger")
             elif danger_type == "I":
-                game_map[x_c][y_c].add("Stone")
-                game_map[x_c][y_c].add("Clear")
+                game_map[y_c][x_c].add("Stone")
+                game_map[y_c][x_c].add("Clear")
             elif danger_type == "T":
-                game_map[x_c][y_c].add("Thor")
-                for xcoord, ycoord in surrounding_squares(x_c, y_c):
-                    game_map[xcoord][ycoord].add("Solvable Danger")
+                game_map[y_c][x_c].add("Thor")
+                for ycoord, xcoord in surrounding_squares(y_c, x_c):
+                    game_map[ycoord][xcoord].add("Solvable Danger")
             elif danger_type == "M":
-                game_map[x_c][y_c].add("Captain Marvel")
-                for xcoord, ycoord in captain_marvel_zone(x_c, y_c):
-                    game_map[xcoord][ycoord].add("Danger")
+                game_map[y_c][x_c].add("Captain Marvel")
+                for ycoord, xcoord in captain_marvel_zone(y_c, x_c):
+                    game_map[ycoord][xcoord].add("Danger")
             elif danger_type == "P":
-                game_map[x_c][y_c].add("Danger")
+                game_map[y_c][x_c].add("Danger")
     # u = input()
     # num_of_dangers = int(u)
     # dangers = []
     # for i in range(num_of_dangers):
-    #     x_c, y_c, danger_type = input().split()
+    #     y_c, x_c, danger_type = input().split()
     #     x_c = int(x_c)
     #     y_c = int(y_c)
-    #     dangers.append([x_c, y_c])
+    #     dangers.append([y_c, x_c])
     #     if danger_type == 'S':
-    #         game_map[x_c][y_c].add("Shield")
-    #         game_map[x_c][y_c].add("Clear")
-    #         dangers.pop()
+    #         game_map[y_c][x_c].add("Shield")
+    #         game_map[y_c][x_c].add("Clear")
     #     elif danger_type == "H":
-    #         game_map[x_c][y_c].add("Hulk")
-    #         for xcoord, ycoord in x_squares(x_c, y_c):
-    #             game_map[xcoord][ycoord].add("Solvable Danger")
+    #         game_map[y_c][x_c].add("Hulk")
+    #         for ycoord, xcoord in x_squares(y_c, x_c):
+    #             game_map[ycoord][xcoord].add("Solvable Danger")
     #     elif danger_type == "I":
-    #         game_map[x_c][y_c].add("Stone")
-    #         game_map[x_c][y_c].add("Clear")
-    #         dangers.pop()
+    #         game_map[y_c][x_c].add("Stone")
+    #         game_map[y_c][x_c].add("Clear")
     #     elif danger_type == "T":
-    #         game_map[x_c][y_c].add("Thor")
-    #         for xcoord, ycoord in surrounding_squares(x_c, y_c):
-    #             game_map[xcoord][ycoord].add("Solvable Danger")
+    #         game_map[y_c][x_c].add("Thor")
+    #         for ycoord, xcoord in surrounding_squares(y_c, x_c):
+    #             game_map[ycoord][xcoord].add("Solvable Danger")
     #     elif danger_type == "M":
-    #         game_map[x_c][y_c].add("Captain Marvel")
-    #         for xcoord, ycoord in captain_marvel_zone(x_c, y_c):
-    #             game_map[xcoord][ycoord].add("Danger")
+    #         game_map[y_c][x_c].add("Captain Marvel")
+    #         for ycoord, xcoord in captain_marvel_zone(y_c, x_c):
+    #             game_map[ycoord][xcoord].add("Danger")
     #     elif danger_type == "P":
-    #         game_map[x_c][y_c].add("Danger")
+    #         game_map[y_c][x_c].add("Danger")
 
-    for pair in surrounding_squares(x, y):
+    for pair in surrounding_squares(y, x):
         if pair not in dangers:
-            x_c = pair[0]
-            y_c = pair[1]
-            game_map[x_c][y_c].add("Clear")
+            y_c = pair[0]
+            x_c = pair[1]
+            game_map[y_c][x_c].add("Clear")
     if game_type == 2:
-        for pair in ear_squares(x, y):
-            x_c = pair[0]
-            y_c = pair[1]
+        for pair in ear_squares(y, x):
+            y_c = pair[0]
+            x_c = pair[1]
             if pair not in dangers:
-                game_map[x_c][y_c].add("Clear")
+                game_map[y_c][x_c].add("Clear")
 
-    for pair in x_squares(x, y):
-        x_c = pair[0]
-        y_c = pair[1]
-        if "Clear" in game_map[x_c][y_c] and "Visited" not in game_map[x_c][y_c]:
-            if "Shield" in game_map[x_c][y_c]:
+    for pair in x_squares(y, x):
+        y_c = pair[0]
+        x_c = pair[1]
+        if "Clear" in game_map[y_c][x_c] and "Visited" not in game_map[y_c][x_c]:
+            if "Shield" in game_map[y_c][x_c]:
                 has_shield = True
-            make_move(x_c, y_c, game_map, x, y)
-    print("m", source_x, source_y)
+            make_move(y_c, x_c, game_map, y, x)
+    print("m", source_y, source_x)
     # u = input()
     # num_of_dangers = int(u)
     # for i in range(num_of_dangers):
-    #     x_c, y_c, danger_type = input().split()
+    #     y_c, x_c, danger_type = input().split()
     with open("runner_request.txt", 'w') as f:
-        f.write(f'm {source_x} {source_y}\n')
+        f.write(f'm {source_y} {source_x}\n')
     simulate_response()
 
 
-def surrounding_squares(x, y):
+def surrounding_squares(y, x):
     squares = []
     for i in range(-1, 2):
         for j in range(-1, 2):
@@ -200,7 +198,7 @@ def surrounding_squares(x, y):
             x_c = x + i
             y_c = y + j
             if 0 <= x_c <= 8 and 0 <= y_c <= 8:
-                squares.append([x_c, y_c])
+                squares.append([y_c, x_c])
     return squares
 
 
@@ -212,35 +210,35 @@ def simulate_response():
     global x_prev, y_prev
     global has_shield
     with open("runner_request.txt", 'r') as f:
-        m, x, y = f.readline().split()
+        m, y, x = f.readline().split()
         x = int(x)
         y = int(y)
     for elem in ['H', 'M', 'T']:
-        if elem in my_map[x][y]:
-            print(f"You stepped at ({x}, {y}) where enemy resides")
+        if elem in my_map[y][x]:
+            print(f"You stepped at ({y}, {x}) where enemy resides")
             print("Game over.")
             raise Exception
-    if [x, y] not in x_squares(x_prev, y_prev) and [x, y] != [x_prev, y_prev]:
-        print(f"Invalid move from ({x_prev}, {y_prev}) to ({x}, {y})")
+    if [y, x] not in x_squares(y_prev, x_prev) and [y, x] != [y_prev, x_prev]:
+        print(f"Invalid move from ({y_prev}, {x_prev}) to ({y}, {x})")
         raise ZeroDivisionError
     x_prev = x
     y_prev = y
-    if ('P' in my_map[x][y] and not has_shield) or [x, y] in captain_marvel_zone(marvel_x, marvel_y):
-        print(f"You stepped at ({x}, {y})")
-        print(marvel_x, marvel_y)
-        print(captain_marvel_zone(marvel_x, marvel_y))
+    if ('P' in my_map[y][x] and not has_shield) or [y, x] in captain_marvel_zone(marvel_y, marvel_x):
+        print(f"You stepped at ({y}, {x})")
+        print(marvel_y, marvel_x)
+        print(captain_marvel_zone(marvel_y, marvel_x))
         print("Game over.")
         raise Exception
     dangers = []
-    for pair in surrounding_squares(x, y):
+    for pair in surrounding_squares(y, x):
         if my_map[pair[0]][pair[1]]:
-            if my_map[pair[0]][pair[1]] == 'P' and has_shield and pair not in captain_marvel_zone(marvel_x, marvel_y):
+            if my_map[pair[0]][pair[1]] == 'P' and has_shield and pair not in captain_marvel_zone(marvel_y, marvel_x):
                 continue
             dangers.append([pair[0], pair[1], my_map[pair[0]][pair[1]]])
     if game_type == 2:
-        for pair in ear_squares(x, y):
+        for pair in ear_squares(y, x):
             if my_map[pair[0]][pair[1]]:
-                if my_map[pair[0]][pair[1]] == 'P' and has_shield and pair not in captain_marvel_zone(marvel_x, marvel_y):
+                if my_map[pair[0]][pair[1]] == 'P' and has_shield and pair not in captain_marvel_zone(marvel_y, marvel_x):
                     continue
                 dangers.append([pair[0], pair[1], my_map[pair[0]][pair[1]]])
     with open("author_response.txt", 'w') as f:
@@ -250,50 +248,50 @@ def simulate_response():
             f.write(f'{pair[0]} {pair[1]} {pair[2]}\n')
 
 
-def x_squares(x, y):
+def x_squares(y, x):
     squares = []
     for i in [-1, 1]:
-        if 0 <= x+i <= 8:
-            squares.append([x+i, y])
         if 0 <= y+i <= 8:
-            squares.append([x, y+i])
+            squares.append([y+i, x])
+        if 0 <= x+i <= 8:
+            squares.append([y, x+i])
     return squares
 
 
-def ear_squares(x, y):
+def ear_squares(y, x):
     squares = []
     for i in [-2, 2]:
-        if 0 <= x+i <= 8 and 0 <= y+i <= 8:
-            squares.append([x+i, y+i])
-        if 0 <= x+i <= 8 and 0 <= y-i <= 8:
-            squares.append([x+i, y-i])
+        if 0 <= y+i <= 8 and 0 <= x+i <= 8:
+            squares.append([y+i, x+i])
+        if 0 <= y+i <= 8 and 0 <= x-i <= 8:
+            squares.append([y+i, x-i])
     return squares
 
 
-def find_shortest_path_without_shield(game_map, destination_x, destination_y):
+def find_shortest_path_without_shield(game_map, destination_y, destination_x):
     shortest_path_length = float("inf")
     visited = [[0 for _ in range(9)] for __ in range(9)]
     queue = []
 
-    def bfs(x, y, length):
+    def bfs(y, x, length):
         nonlocal shortest_path_length
-        if x == destination_x and y == destination_y:
+        if y == destination_y and x == destination_x:
             shortest_path_length = length
             raise Exception
-        visited[x][y] = 1
-        for x_c, y_c in x_squares(x, y):
+        visited[y][x] = 1
+        for y_c, x_c in x_squares(y, x):
             flag = 0
             for elem in ["Danger", "Solvable Danger", "Hulk", "Thor", "Captain Marvel"]:
-                if elem in game_map[x_c][y_c]:
+                if elem in game_map[y_c][x_c]:
                     flag = 1
                     break
-            if not visited[x_c][y_c] and not flag:
-                queue.append([x_c, y_c, length+1])
+            if not visited[y_c][x_c] and not flag:
+                queue.append([y_c, x_c, length+1])
         while queue:
             triplet = queue.pop(0)
-            x_c, y_c, path_len = triplet
-            if not visited[x_c][y_c]:
-                bfs(x_c, y_c, path_len)
+            y_c, x_c, path_len = triplet
+            if not visited[y_c][x_c]:
+                bfs(y_c, x_c, path_len)
     try:
         bfs(0, 0, 0)
     except Exception:
@@ -302,33 +300,33 @@ def find_shortest_path_without_shield(game_map, destination_x, destination_y):
     return shortest_path_length
 
 
-def find_shortest_path_with_shield(game_map, shield_x, shield_y, destination_x, destination_y):
-    path_to_shield = find_shortest_path_without_shield(game_map, shield_x, shield_y)
+def find_shortest_path_with_shield(game_map, shield_y, shield_x, destination_y, destination_x):
+    path_to_shield = find_shortest_path_without_shield(game_map, shield_y, shield_x)
     visited = [[0 for _ in range(9)] for __ in range(9)]
     path_from_shield_to_stone = float("inf")
     queue = []
 
-    def bfs(x, y, length):
+    def bfs(y, x, length):
         nonlocal path_from_shield_to_stone
-        if x == destination_x and y == destination_y:
+        if y == destination_y and x == destination_x:
             path_from_shield_to_stone = length
             raise Exception
-        visited[x][y] = 1
-        for x_c, y_c in x_squares(x, y):
+        visited[y][x] = 1
+        for y_c, x_c in x_squares(y, x):
             flag = 0
             for elem in ["Danger", "Hulk", "Thor", "Captain Marvel"]:
-                if elem in game_map[x_c][y_c]:
+                if elem in game_map[y_c][x_c]:
                     flag = 1
                     break
-            if not visited[x_c][y_c] and not flag:
-                queue.append([x_c, y_c, length+1])
+            if not visited[y_c][x_c] and not flag:
+                queue.append([y_c, x_c, length+1])
         while queue:
             triplet = queue.pop(0)
-            x_c, y_c, path_len = triplet
-            if not visited[x_c][y_c]:
-                bfs(x_c, y_c, path_len)
+            y_c, x_c, path_len = triplet
+            if not visited[y_c][x_c]:
+                bfs(y_c, x_c, path_len)
     try:
-        bfs(shield_x, shield_y, 0)
+        bfs(shield_y, shield_x, 0)
     except Exception:
         pass
     return path_to_shield + path_from_shield_to_stone
@@ -355,18 +353,3 @@ def runner():
 
 
 runner()
-
-
-
-
-# def generate_test_cases():
-#     for i in range(9):
-#         for j in range(9):
-#
-#     test_map = [['' for _ in range(9)] for __ in range(9)]
-#
-#     with open("testcases.txt", 'w') as f:
-#         f.write(f"{my_map}")
-# generate_test_cases()
-
-
