@@ -1,14 +1,11 @@
 import random
-import math
+
+
 with open('input.txt', 'r') as f:
     words = f.read().splitlines()
 
 POP_SIZE = 500
 GRID_SIZE = 20
-
-
-def sigmoid(x):
-    return 1/(1+math.e**-x)
 
 
 def generate_random_grid():
@@ -31,6 +28,33 @@ def generate_random_grid():
     return grid, words_placement
 
 
+def word_intersection(word1, word_info1, word2, word_info2):
+    x1, y1, t1 = word_info1
+    x2, y2, t2 = word_info2
+    if t1 != t2:
+        if not t1:
+            x1, y1, t1, = word_info2  # make first word horizontal and second vertical
+            x2, y2, t2 = word_info1
+            word1, word2 = word2, word1
+        if x1 <= x2 < x1+len(word1) and y2 <= y1 < y2+len(word2):
+            return [(x2, y1)]
+        return []
+    if t1:
+        if x1 != x2:
+            return []
+        if y1 < y2:
+            return [(x1, i) for i in range(y2, min(y1+len(word1), y2+len(word2)))]
+            # do not check whether x2 is greater than x1 + len(word1),
+            # because it would just return empty list in that case
+        return [(x2, i) for i in range(y1, min(y1+len(word1), y2+len(word2)))]
+
+    # if not t1:
+    if y1 != y2:
+        return []
+    if x1 < x2:
+        return [(i, y1) for i in range(x2, min(len(word1), len(word2)))]
+    return [(i, y1) for i in range(x1, min(x1+len(word1), x2+len(word2)))]
+
 def word_intersection(word1, word_info1, word2, word_info2):  # 0 - vertical, 1 - horizontal
     x1, y1, t1 = word_info1
     x2, y2, t2 = word_info2
@@ -50,49 +74,6 @@ def word_intersection(word1, word_info1, word2, word_info2):  # 0 - vertical, 1 
             intersections.append(coord)
     return intersections
 
-
-def word_intersection_2(word1, word_info1, word2, word_info2):
-    x1, y1, t1 = word_info1
-    x2, y2, t2 = word_info2
-    if t1 != t2:
-        if not t1:
-            x1, y1, t1, = word_info2  #make first word horizontal and second vertical
-            x2, y2, t2 = word_info1
-            word1, word2 = word2, word1
-        if x1 <= x2 < x1+len(word1) and y2 <= y1 < y2+len(word2):
-            return [(x2, y1)]
-        return []
-    if t1:
-        if x1 != x2:
-            return []
-        if y1 < y2:
-            return [(x1, i) for i in range(y2, y1+len(word1))]
-            # do not check whether x2 is greater than x1 + len(word1),
-            # because it would just return empty list in that case
-        return [(x2, i) for i in range(y1, y2+len(word2))]
-
-    # if not t1:
-    if y1 != y2:
-        return []
-    if x1 < x2:
-        return [(i, y1) for i in range(x2, x1+len(word1))]
-    return [(i, y1) for i in range(x1, x2+len(word2))]
-
-
-# def area(x1, y1, x2, y2, x3, y3):
-#     return (x2-x1) * (y3-y1) - (y2-y1) * (x3-x1)
-#
-#
-# def intersect_l(a, b, c, d):
-#     a, b = min(a, b), max(a, b)
-#     c, d = min(c, d), max(c, d)
-#     return max(a, c) <= min(b, c)
-#
-#
-# def words_intersection(x1, y1, x2, y2, x3, y3, x4, y4):
-#     return intersect_l(x1, x2, x3, x4) and intersect_l(y1, y2, y3, y4) \
-#            and area(x1, y1, x2, y2, x3, y3) * area(x1, y1, x2, y2, x4, y4) <= 0 \
-#            and area(x3, y3, x4, y4, x1, y1) * area(x3, y3, x4, y4, x2, y2) <= 0
 population = [generate_random_grid() for _ in range(POP_SIZE)]
 
 
@@ -149,8 +130,6 @@ def evaluate_fitness(grid: list, words_positions: dict):
     word_items = list(words_positions.items())
     for i in range(len(words_positions)):
         for j in range(i+1, len(words_positions)):
-            word1, word1_info = word_items[i][0], word_items[i][1]
-            word2, word2_info = word_items[j][0], word_items[j][1]
             fit += check_parallelism(*word_items[i], *word_items[j])
             intersection = word_intersection(*word_items[i], *word_items[j])
             if intersection:
@@ -180,25 +159,17 @@ def evaluate_fitness(grid: list, words_positions: dict):
 
 
 def print_grid(grid):
-    print(*[' '.join(l) for l in grid], sep='\n')
-# exp_sum = sum(map(math.exp, fitness_scores))
-# print(exp_sum)
-# sigm = lambda x: math.exp(x) / exp_sum
-# probabilities = list(map(sigm, fitness_scores))
-# print(probabilities)
-# print(fitness_scores)
+    print(*[' '.join(line) for line in grid], sep='\n')
+
 
 # Step 4: Select parents for next generation
 def select_parents(population, num_parents):
     fitness_scores = [evaluate_fitness(grid, words_info) for grid, words_info in population]
-    # print("Max fit is ",max(fitness_scores))
     indices = [*range(len(fitness_scores))]
     lst = [(a, b) for a, b in zip(fitness_scores, indices)]
     lst.sort(key=lambda pair: pair[0], reverse=True)
-    # print("Best 10 are", lst[:10])
     best_indices = [lst[i][1] for i in range(num_parents)]
     best = [population[i] for i in best_indices]
-    # print("Best are ", [evaluate_fitness(*i) for i in best[:10]])
     return best
 
 
@@ -222,6 +193,7 @@ def construct_grid(words_info):
 def crossover(parent1, parent2):
     grid1, info1 = parent1
     grid2, info2 = parent2
+    # Single-point crossover
     # new_gen = {key: info1[key] for i, key in enumerate(list(info1.keys())[:len(info1)//2])}
     # for key in info2:
     #     if key not in new_gen:
@@ -259,10 +231,12 @@ def mutate(grid, word_info, mutations_num=1):
     grid = construct_grid(new_gen)
     return [grid, new_gen]
 
-NUM_EPOCHS = 2000
+
 epoch = 0
 maxfit = float('-inf')
 while maxfit < 0:
+    print(epoch)
+    epoch += 1
     children = []
     num_children = POP_SIZE
     for i in range(25):
@@ -272,17 +246,13 @@ while maxfit < 0:
 
             child = crossover(parent1, parent2)
             child = mutate(*child, random.randint(0, 3))
-            if child not in children:
+            if child not in children:  # TODO: think up a way to make this search faster
 
                 children.append(child)
-    # print("Best before concatenation:", evaluate_fitness(*parents[0]))
     parents = select_parents(parents+children, POP_SIZE)
-    # print("Best after concatenation", evaluate_fitness(*parents[0]))
     maxfit = evaluate_fitness(*parents[0])
     if epoch % 10 == 0:
         print(f"Epoch {epoch}:")
-        # print([evaluate_fitness(*i) for i in parents][:10])
-        # print([evaluate_fitness(*i) for i in parents][-10:])
         print("Best:")
         print(maxfit)
         print_grid(parents[0][0])
@@ -299,7 +269,7 @@ while maxfit < 0:
             else:
                 print('|', end=' ')
         print()
-        epoch += 1
+
 
 best_grid = parents[0][0]
 maxfit = evaluate_fitness(*parents[0])
