@@ -179,6 +179,8 @@ def evaluate_fitness(grid: list, words_positions: dict):
     return fit
 
 
+def print_grid(grid):
+    print(*[' '.join(l) for l in grid], sep='\n')
 # exp_sum = sum(map(math.exp, fitness_scores))
 # print(exp_sum)
 # sigm = lambda x: math.exp(x) / exp_sum
@@ -237,7 +239,6 @@ def crossover(parent1, parent2):
 
 
 def mutate(grid, word_info, mutations_num=1):
-
     words = list(word_info.keys())
     new_gen = {key: word_info[key] for key in word_info}
     for i in range(mutations_num):
@@ -259,8 +260,9 @@ def mutate(grid, word_info, mutations_num=1):
     return [grid, new_gen]
 
 NUM_EPOCHS = 2000
-
-for epoch in range(NUM_EPOCHS):
+epoch = 0
+maxfit = float('-inf')
+while maxfit < 0:
     children = []
     num_children = POP_SIZE
     for i in range(25):
@@ -276,27 +278,28 @@ for epoch in range(NUM_EPOCHS):
     # print("Best before concatenation:", evaluate_fitness(*parents[0]))
     parents = select_parents(parents+children, POP_SIZE)
     # print("Best after concatenation", evaluate_fitness(*parents[0]))
-    if evaluate_fitness(*parents[0]) >= 0:
-        break
+    maxfit = evaluate_fitness(*parents[0])
     if epoch % 10 == 0:
         print(f"Epoch {epoch}:")
         # print([evaluate_fitness(*i) for i in parents][:10])
         # print([evaluate_fitness(*i) for i in parents][-10:])
-        print("Best:", *parents[0][0], sep='\n', end='\n\n')
-        print("Second:", *parents[1][0], sep='\n', end='\n\n')
-        print("Third", *parents[2][0], sep='\n', end='\n\n')
-        print("Fourth", *parents[3][0], sep='\n', end='\n\n')
-        best_grid = parents[0][0]
-        maxfit = evaluate_fitness(*parents[0])
-
-        print(*[' '.join(l) for l in best_grid], sep='\n')
+        print("Best:")
         print(maxfit)
+        print_grid(parents[0][0])
+        print("Second:")
+        print_grid(parents[1][0])
+        print("Third")
+        print_grid(parents[2][0])
+        print("Fourth")
+        print_grid(parents[3][0])
+        best_grid = parents[0][0]
         for i in range(1, POP_SIZE):
             if parents[i][1] == parents[i-1][1]:
                 print(i, end=' ')
             else:
                 print('|', end=' ')
         print()
+        epoch += 1
 
 best_grid = parents[0][0]
 maxfit = evaluate_fitness(*parents[0])
