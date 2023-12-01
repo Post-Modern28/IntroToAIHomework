@@ -9,23 +9,17 @@ GRID_SIZE = 20
 
 
 def generate_random_grid():
-    grid = [['.' for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
     words_placement = {}
     for word in words:
         if len(word) > GRID_SIZE:
             continue
         placement_type = random.randint(0, 1)
         if placement_type:
-
             x, y = random.randint(0, GRID_SIZE-1), random.randint(0, GRID_SIZE - len(word)-1)
-            for i, letter in enumerate(word):
-                grid[x][y+i] = letter
         else:
             x, y = random.randint(0, GRID_SIZE - len(word)-1), random.randint(0, GRID_SIZE-1)
-            for i, letter in enumerate(word):
-                grid[x+i][y] = letter
         words_placement[word] = [x, y, placement_type]
-    return grid, words_placement
+    return words_placement
 
 
 def word_intersection(word1, word_info1, word2, word_info2):
@@ -55,11 +49,10 @@ def word_intersection(word1, word_info1, word2, word_info2):
         return [(i, y1) for i in range(x2, min(len(word1), len(word2)))]
     return [(i, y1) for i in range(x1, min(x1+len(word1), x2+len(word2)))]
 
+
 def word_intersection(word1, word_info1, word2, word_info2):  # 0 - vertical, 1 - horizontal
     x1, y1, t1 = word_info1
     x2, y2, t2 = word_info2
-    s1 = set()
-    s2 = set()
     if t1:
         s1 = {(x1, i) for i in range(y1, y1+len(word1))}
     else:
@@ -74,10 +67,8 @@ def word_intersection(word1, word_info1, word2, word_info2):  # 0 - vertical, 1 
             intersections.append(coord)
     return intersections
 
-population = [generate_random_grid() for _ in range(POP_SIZE)]
 
-
-def evaluate_fitness(grid: list, words_positions: dict):
+def evaluate_fitness(words_positions: dict):
 
     def validate_intersections(word_1, word_1_info, word_2, word_2_info, common_points):
         score = 0
@@ -107,6 +98,12 @@ def evaluate_fitness(grid: list, words_positions: dict):
         x1, y1, t1 = word_1_info
         x2, y2, t2 = word_2_info
         if t1 != t2:
+            if not t1:
+                if (y1 == y2 - 1 or y1 == y2+len(word_2)) and (x1 <= x2 < x1 + len(word_1)):
+                    score -= 100
+            else:
+                if (x1 == x2 - 1 or x1 == x2+len(word_2)) and (y1 <= y2 < y1 + len(word_1)):
+                    score -= 100
             return score
         if t1 and x1-1 <= x2 <= x1+1:
             y1_f = y1 + len(word_1)
@@ -123,6 +120,8 @@ def evaluate_fitness(grid: list, words_positions: dict):
             elif x2 <= x1 <= x2_f:
                 score -= (x2_f - x1) * 100
         return score
+
+
 
 
     fit = 0
@@ -164,16 +163,13 @@ def print_grid(grid):
 
 # Step 4: Select parents for next generation
 def select_parents(population, num_parents):
-    fitness_scores = [evaluate_fitness(grid, words_info) for grid, words_info in population]
+    fitness_scores = [evaluate_fitness(words_info) for words_info in population]
     indices = [*range(len(fitness_scores))]
     lst = [(a, b) for a, b in zip(fitness_scores, indices)]
     lst.sort(key=lambda pair: pair[0], reverse=True)
     best_indices = [lst[i][1] for i in range(num_parents)]
     best = [population[i] for i in best_indices]
     return best
-
-
-parents = select_parents(population, num_parents=POP_SIZE)
 
 
 def construct_grid(words_info):
@@ -191,13 +187,8 @@ def construct_grid(words_info):
 
 # Step 5: Create new grids from parents
 def crossover(parent1, parent2):
-    grid1, info1 = parent1
-    grid2, info2 = parent2
-    # Single-point crossover
-    # new_gen = {key: info1[key] for i, key in enumerate(list(info1.keys())[:len(info1)//2])}
-    # for key in info2:
-    #     if key not in new_gen:
-    #         new_gen[key] = info2[key]
+    info1 = parent1
+    info2 = parent2
     # Here is a uniform crossover
     new_gen = {}
     for i in info1.keys():
@@ -206,11 +197,34 @@ def crossover(parent1, parent2):
             new_gen[i] = info1[i][::]
         else:
             new_gen[i] = info2[i][::]
-    new_grid = construct_grid(new_gen)
-    return [new_grid, new_gen]
+    return new_gen
+
+def modified_crossover(parent1, parent2):
+    info1 = parent1
+    info2 = parent2
+    # Modified uniform crossover
+    new_gen = {}
+    for i in info1.keys():
+        coin = random.randint(0, 9)
+        if coin < 8:
+            new_gen[i] = info1[i][::]
+        else:
+            new_gen[i] = info2[i][::]
+    return new_gen
 
 
-def mutate(grid, word_info, mutations_num=1):
+def single_point_crossover(parent1, parent2):
+    info1 = parent1
+    info2 = parent2
+    # Single-point crossover
+    new_gen = {key: info1[key] for i, key in enumerate(list(info1.keys())[:len(info1)//2])}
+    for key in info2:
+        if key not in new_gen:
+            new_gen[key] = info2[key]
+    return new_gen
+
+
+def mutate(word_info, mutations_num=1):
     words = list(word_info.keys())
     new_gen = {key: word_info[key] for key in word_info}
     for i in range(mutations_num):
@@ -228,50 +242,54 @@ def mutate(grid, word_info, mutations_num=1):
         elif change_type == 3:
             y = random.randint(0, len(mutated_key)-1)
             new_gen[mutated_key][1] = y
-    grid = construct_grid(new_gen)
-    return [grid, new_gen]
+    return new_gen
 
 
+population = [generate_random_grid() for _ in range(POP_SIZE)]
+parents = select_parents(population, num_parents=POP_SIZE)
 epoch = 0
 maxfit = float('-inf')
 while maxfit < 0:
-    print(epoch)
-    epoch += 1
+    # print(epoch)
+    TOP_BEST = 25
     children = []
-    num_children = POP_SIZE
-    for i in range(25):
-        parent1 = parents[i]
-        for j in range(i+1, num_children):
-            parent2 = parents[j]
-
-            child = crossover(parent1, parent2)
-            child = mutate(*child, random.randint(0, 3))
-            if child not in children:  # TODO: think up a way to make this search faster
-
-                children.append(child)
+    NUM_CHILDREN = POP_SIZE
+    STRATEGY_CHANGE_POINT = 100
+    if epoch < STRATEGY_CHANGE_POINT:
+        for p1 in range(TOP_BEST):
+            parent1 = parents[p1]
+            for p2 in range(p1 + 1, NUM_CHILDREN):
+                parent2 = parents[p2]
+                child = crossover(parent1, parent2)
+                child = mutate(child, random.randint(0, 3))
+                if child not in children:  # TODO: think up a way to make this search faster
+                    children.append(child)
+    else:
+        for p1 in range(TOP_BEST):
+            parent1 = parents[p1]
+            for p2 in range(TOP_BEST):
+                parent2 = parents[p2]
+                cross_type = [crossover, modified_crossover, single_point_crossover]
+                coin = random.randint(0, 2)
+                cross_function = cross_type[coin]
+                child = cross_function(parent1, parent2)
+                if child not in children:
+                    children.append(child)
+                child2 = mutate(child, random.randint(1, 5))
+                if child2 not in children:
+                    children.append(child)
     parents = select_parents(parents+children, POP_SIZE)
-    maxfit = evaluate_fitness(*parents[0])
-    if epoch % 10 == 0:
-        print(f"Epoch {epoch}:")
-        print("Best:")
-        print(maxfit)
-        print_grid(parents[0][0])
-        print("Second:")
-        print_grid(parents[1][0])
-        print("Third")
-        print_grid(parents[2][0])
-        print("Fourth")
-        print_grid(parents[3][0])
-        best_grid = parents[0][0]
-        for i in range(1, POP_SIZE):
-            if parents[i][1] == parents[i-1][1]:
-                print(i, end=' ')
-            else:
-                print('|', end=' ')
-        print()
+    maxfit = evaluate_fitness(parents[0])
+    epoch += 1
+    # if epoch % 10 == 0:
+    #     print_grid(construct_grid(parents[0]))
 
-
-best_grid = parents[0][0]
-maxfit = evaluate_fitness(*parents[0])
-
-print(*[' '.join(l) for l in best_grid], sep='\n')
+best_grid = construct_grid(parents[0])
+best_info = parents[0]
+maxfit = evaluate_fitness(parents[0])
+with open("output.txt", "w") as f:
+    for word in words:
+        x, y, t = best_info[word]
+        t = (t + 1) % 2
+        f.write(f'{x} {y} {t}\n')
+# print_grid(best_grid)
