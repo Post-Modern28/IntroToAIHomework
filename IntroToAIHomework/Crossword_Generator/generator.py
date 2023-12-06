@@ -1,5 +1,5 @@
 import random
-
+from statistics import mode
 
 with open('input.txt', 'r') as f:
     words = f.read().splitlines()
@@ -121,9 +121,6 @@ def evaluate_fitness(words_positions: dict):
                 score -= (x2_f - x1) * 100
         return score
 
-
-
-
     fit = 0
     adjacency_matrix = [[0 for _ in range(len(words_positions))] for __ in range(len(words_positions))]
     word_items = list(words_positions.items())
@@ -131,9 +128,11 @@ def evaluate_fitness(words_positions: dict):
         for j in range(i+1, len(words_positions)):
             fit += check_parallelism(*word_items[i], *word_items[j])
             intersection = word_intersection(*word_items[i], *word_items[j])
-            if intersection:
+            intersection_validation = validate_intersections(*word_items[i], *word_items[j], intersection)
+            fit += validate_intersections(*word_items[i], *word_items[j], intersection)
+            if intersection_validation > 0:
                 adjacency_matrix[i][j] = adjacency_matrix[j][i] = 1
-                fit += validate_intersections(*word_items[i], *word_items[j], intersection)
+
 
     def count_adjacency_components():
         visited = [0] * len(adjacency_matrix)
@@ -148,11 +147,16 @@ def evaluate_fitness(words_positions: dict):
             if not visited[i]:
                 dfs(i)
                 cur_comp += 1
-        return cur_comp-1
+        biggest_component_num = mode(visited)
+        big_component = []
+        for i in range(len(adjacency_matrix)):
+            if visited[i] == biggest_component_num:
+                big_component.append(i)
+        return cur_comp-1, big_component
 
-    adjacency_components = count_adjacency_components()
+    adjacency_components_num, biggest_component = count_adjacency_components()
 
-    fit -= (adjacency_components-1) * 400
+    fit -= (adjacency_components_num-1) * 400
 
     return fit
 
@@ -199,6 +203,7 @@ def crossover(parent1, parent2):
             new_gen[i] = info2[i][::]
     return new_gen
 
+
 def modified_crossover(parent1, parent2):
     info1 = parent1
     info2 = parent2
@@ -206,7 +211,7 @@ def modified_crossover(parent1, parent2):
     new_gen = {}
     for i in info1.keys():
         coin = random.randint(0, 9)
-        if coin < 8:
+        if coin < 8:  # 80 % chance to get DNA of a better parent
             new_gen[i] = info1[i][::]
         else:
             new_gen[i] = info2[i][::]
@@ -217,12 +222,17 @@ def single_point_crossover(parent1, parent2):
     info1 = parent1
     info2 = parent2
     # Single-point crossover
-    new_gen = {key: info1[key] for i, key in enumerate(list(info1.keys())[:len(info1)//2])}
+    new_gen = {key: info1[key][::] for i, key in enumerate(list(info1.keys())[:len(info1)//2])}
     for key in info2:
         if key not in new_gen:
             new_gen[key] = info2[key]
     return new_gen
 
+
+
+
+def good_crossover(parent1, parent2):
+    pass
 
 def mutate(word_info, mutations_num=1):
     words = list(word_info.keys())
@@ -243,7 +253,6 @@ def mutate(word_info, mutations_num=1):
             y = random.randint(0, len(mutated_key)-1)
             new_gen[mutated_key][1] = y
     return new_gen
-
 
 population = [generate_random_grid() for _ in range(POP_SIZE)]
 parents = select_parents(population, num_parents=POP_SIZE)
@@ -281,8 +290,9 @@ while maxfit < 0:
     parents = select_parents(parents+children, POP_SIZE)
     maxfit = evaluate_fitness(parents[0])
     epoch += 1
-    # if epoch % 10 == 0:
-    #     print_grid(construct_grid(parents[0]))
+    if epoch % 10 == 0:
+        print_grid(construct_grid(parents[0]))
+        print()
 
 best_grid = construct_grid(parents[0])
 best_info = parents[0]
@@ -292,4 +302,4 @@ with open("output.txt", "w") as f:
         x, y, t = best_info[word]
         t = (t + 1) % 2
         f.write(f'{x} {y} {t}\n')
-# print_grid(best_grid)
+print_grid(best_grid)
