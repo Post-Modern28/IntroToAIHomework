@@ -3,12 +3,11 @@ from MikhailRomanov import construct_grid
 GRID_SIZE = 20
 
 
-
 def print_grid(grid):
     print(*[' '.join(line) for line in grid], sep='\n')
 
 
-for i in range(6, 7):
+for i in range(1, 101):
     f1 = open(f'inputs/input{i}.txt')
     f2 = open(f'outputs/output{i}.txt')
     info = {}

@@ -1,6 +1,5 @@
 import random
 from statistics import mode
-import os
 from datetime import datetime
 
 
@@ -381,9 +380,9 @@ def define_movement_borders(component):
 
 
 GRID_SIZE = 20
-for i in range(1, 7):
+for i in range(1, 101):
     start_time = datetime.now()
-    with open(os.getcwd()+f'/inputs/input{i}.txt', 'r') as f:
+    with open(f'/inputs/input{i}.txt', 'r') as f:
         words = f.read().splitlines()
     print(f"Running test {i}")
     POP_SIZE = 250
@@ -467,7 +466,7 @@ for i in range(1, 7):
     best_grid = construct_grid(parents[0])
     best_info = parents[0]
     maxfit = evaluate_fitness(parents[0])
-    with open(os.getcwd()+f"/outputs/output{i}.txt", "w") as f:
+    with open(f"/outputs/output{i}.txt", "w") as f:
         for word in words:
             x, y, t = best_info[word]
             t = (t + 1) % 2  # in my program 0 is vertical, 1 is horizontal, but the task requires it vice versa
